@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=c17 -Iinclude
 LDFLAGS = -lpthread
 
-SRCS = src/main.c src/parser.c src/dag.c
+SRCS = src/main.c src/parser.c src/dag.c src/scheduler.c
 OBJS = $(SRCS:.c=.o)
 TARGET = planificador
 

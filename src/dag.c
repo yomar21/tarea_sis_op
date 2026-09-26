@@ -18,7 +18,7 @@ static char *trim_local(char *str) {
     }
     return str;
 }
-
+//revisar si se puede usar un sizre
 int buscar_actividad_por_id(const Actividad actividades[], int total, const char *id_buscado){
 for(int i=0; i<total; i++){
 if(strcmp(actividades[i].id, id_buscado)==0){
