@@ -18,7 +18,6 @@ static char *trim_local(char *str) {
     }
     return str;
 }
-//revisar si se puede usar un sizre
 int buscar_actividad_por_id(const Actividad actividades[], int total, const char *id_buscado){
 for(int i=0; i<total; i++){
 if(strcmp(actividades[i].id, id_buscado)==0){
@@ -32,6 +31,13 @@ return -1;
 
 int construir_dag(Actividad actividades[], int total){
     for (int i=0; i<total; i++){
+
+        // Inicializa los valores necesarios para cada actividad.
+        actividades[i].total_deps = 0;
+        actividades[i].estado = ESTADO_PENDIENTE;
+        actividades[i].pipe_fd[0] = -1;
+        actividades[i].pipe_fd[1] = -1;
+
         if(strlen(actividades[i].deps)==0){
             continue;
         }
@@ -40,10 +46,11 @@ int construir_dag(Actividad actividades[], int total){
         strncpy(buffer_deps, actividades[i].deps, sizeof(buffer_deps)-1);
         buffer_deps[sizeof(buffer_deps)-1] = '\0';
 
-        char *ptr= buffer_deps;
-        while(ptr!=NULL){
-            char *dep= trim_local(strsep(&ptr, ","));
-            if(dep==NULL || strlen(dep)==0){
+        char *dep_raw = strtok(buffer_deps, ",");
+        while(dep_raw != NULL){
+            char *dep = trim_local(dep_raw);
+            if(dep == NULL || strlen(dep) == 0){
+                dep_raw = strtok(NULL, ",");
                 continue;
             }
 
@@ -64,12 +71,12 @@ int construir_dag(Actividad actividades[], int total){
                         actividades[idx_padre].id);
                 return -1;
             }
+            dep_raw = strtok(NULL, ",");
         }
+        actividades[i].total_deps = actividades[i].dependencias_restantes;
     }
     return 0;
-
-
-        }
+}
 
 void imprimir_dag(const Actividad actividades[], int total) {
     printf("\n=== Estructura del Grafo (DAG) ===\n");

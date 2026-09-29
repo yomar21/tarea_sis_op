@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <time.h>
 #include "parser.h"
+#include "dag.h"
 
 static char *trim(char *str) {
     if (str == NULL) return NULL;
@@ -28,20 +29,50 @@ int parsear_archivo(const char *ruta, Actividad actividades[], int *total_activi
         return -1;
     }
 
+    srand(time(NULL));
+
     *total_actividades = 0;
-    char linea[256];
+    char linea[512];
 
     while (fgets(linea, sizeof(linea), archivo) != NULL) {
         linea[strcspn(linea, "\r\n")] = '\0';
         if (strlen(linea) == 0) {
             continue;
         }
+        // Verifica que no se supere el limite de actividades.
+        if (*total_actividades >= MAX_ACTIVIDADES) {
+            fprintf(stderr, "Error: Se supero el limite maximo de actividades (%d).\n", MAX_ACTIVIDADES);
+            fclose(archivo);
+            return -1;
+        }
 
-        char *token = linea;
-        char *id     = trim(strsep(&token, ":"));
-        char *nombre = trim(strsep(&token, ":"));
-        char *tiempo = trim(strsep(&token, ":"));
-        char *deps   = trim(strsep(&token, ":"));
+        // Se separan los campos usando ':'.
+        char *id = linea;
+        char *nombre = NULL, *tiempo = NULL, *deps = NULL;
+
+        char *p1 = strchr(id, ':');
+        if (p1) {
+            *p1 = '\0';
+            nombre = p1 + 1;
+
+            char *p2 = strchr(nombre, ':');
+            if (p2) {
+                *p2 = '\0';
+                tiempo = p2 + 1;
+
+                char *p3 = strchr(tiempo, ':');
+                if (p3) {
+                    *p3 = '\0';
+                    deps = p3 + 1;
+                }
+            }
+        }
+
+        // Limpiamos los espacios en blanco.
+        id = trim(id);
+        nombre = trim(nombre);
+        tiempo = trim(tiempo);
+        deps = trim(deps);
 
         int idx = *total_actividades;
 
@@ -51,6 +82,7 @@ int parsear_archivo(const char *ruta, Actividad actividades[], int *total_activi
         strncpy(actividades[idx].nombre, nombre ? nombre : "", sizeof(actividades[idx].nombre) - 1);
         actividades[idx].nombre[sizeof(actividades[idx].nombre) - 1] = '\0';
 
+        // Usa el tiempo indicado o genera uno aleatorio si el campo esta vacio.
         if (tiempo != NULL && strlen(tiempo) > 0) {
             actividades[idx].tiempo = atoi(tiempo);
         } else {
@@ -64,12 +96,13 @@ int parsear_archivo(const char *ruta, Actividad actividades[], int *total_activi
             actividades[idx].deps[0] = '\0';
         }
 
-        // Inicializar contadores del grafo en cero
+        // Inicializa los contadores del grafo.
         actividades[idx].dependencias_restantes = 0;
         actividades[idx].cant_sucesores = 0;
 
         (*total_actividades)++;
     }
+
 
     fclose(archivo);
     return 0;
